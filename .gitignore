@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Virtual environment
+.venv/
+venv/
+
+# Upstream LANTERN clone (82MB, its own git history + checkpoints).
+# Used only as an answer key; cloned separately per README, not redistributed here.
+LANTERN/
+
+# Regenerable feature cache (rebuild with: python featurize.py --build)
+features/
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+
+# Empty scratch dir
+src/
+
+# Claude Code local settings
+.claude/
