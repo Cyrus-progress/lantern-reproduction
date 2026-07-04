@@ -1,0 +1,20 @@
+This repository (an independent reproduction) is licensed under the MIT License;
+see LICENSE. Copyright (c) 2026 Cyrus Ho.
+
+Third-party data
+----------------
+A small amount of data is vendored from the upstream LANTERN project:
+
+  - data/AGILE.csv
+  - data/splits/AGILE/random.npy
+  - data/splits/AGILE/Murcko_scaffold.npy
+  - data/splits/AGILE/scaffold_balanced.npy
+
+Source : https://github.com/AsalMehradfar/LANTERN  (MIT License)
+Paper  : "LANTERN: A Machine Learning Framework for Lipid Nanoparticle
+         Transfection Efficiency Prediction", arXiv:2507.03209
+Copyright (c) the LANTERN authors.
+
+These files are redistributed under the terms of their MIT license. The upstream
+repository itself is not included in this repository; it is used only as an
+answer key, as described in README.md.
