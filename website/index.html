@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LANTERN, Reproduced — an interactive explainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f6f8fc; --surface:#ffffff; --surface2:#eef2f8; --ink:#0f172a; --ink2:#1e3a8a;
+    --muted:#475569; --line:#dbe3ee; --primary:#1e40af; --blue:#2563eb; --blue-soft:#dbeafe;
+    --amber:#f59e0b; --amber-ink:#b45309; --red:#e11d48; --red-soft:#ffe4e9; --green:#059669;
+    --shadow-sm:0 1px 2px rgba(15,23,42,.06),0 1px 3px rgba(15,23,42,.05);
+    --shadow:0 4px 6px rgba(15,23,42,.05),0 10px 24px rgba(15,23,42,.07);
+    --shadow-lg:0 12px 40px rgba(30,64,175,.13);
+    --radius:14px;
+    --mono:'Fira Code',ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+    --sans:'Fira Sans',system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  }
+  body.dark{
+    --bg:#0b1220; --surface:#111b30; --surface2:#16233c; --ink:#e6edf8; --ink2:#93b4f5;
+    --muted:#94a6c2; --line:#243352; --primary:#3b82f6; --blue:#60a5fa; --blue-soft:#1e2f52;
+    --amber:#fbbf24; --amber-ink:#fcd34d; --red:#fb7185; --red-soft:#3a1622; --green:#34d399;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow:0 6px 20px rgba(0,0,0,.38);
+    --shadow-lg:0 16px 46px rgba(0,0,0,.5);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.65;
+    font-size:17px;-webkit-font-smoothing:antialiased;transition:background .3s,color .3s}
+  h1,h2,h3,h4{font-family:var(--mono);line-height:1.15;font-weight:600;letter-spacing:-.02em}
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:940px;margin:0 auto;padding:0 24px}
+  .ic{width:1em;height:1em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;
+    stroke-linejoin:round;flex:none;vertical-align:-.14em}
+  :focus-visible{outline:2.5px solid var(--amber);outline-offset:3px;border-radius:4px}
+
+  /* progress */
+  #progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:100;
+    background:linear-gradient(90deg,var(--blue),var(--amber))}
+
+  /* nav */
+  header.nav{position:sticky;top:0;z-index:60;background:color-mix(in srgb,var(--bg) 82%,transparent);
+    backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .navrow{display:flex;align-items:center;gap:16px;height:62px}
+  .brand{font-family:var(--mono);font-weight:700;font-size:16px;display:flex;align-items:center;gap:10px;
+    white-space:nowrap;letter-spacing:-.01em}
+  .brand .mark{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;flex:none;
+    background:linear-gradient(135deg,var(--blue),var(--primary));color:#fff;box-shadow:0 2px 10px rgba(37,99,235,.4)}
+  .brand .mark .ic{width:14px;height:14px;stroke-width:2.4}
+  .navlinks{display:flex;gap:20px;margin-left:auto;font-family:var(--mono);font-size:12.5px;
+    letter-spacing:.02em;overflow:auto;scrollbar-width:none}
+  .navlinks::-webkit-scrollbar{display:none}
+  .navlinks a{color:var(--muted);white-space:nowrap;padding:4px 0;border-bottom:2px solid transparent;transition:color .2s,border-color .2s}
+  .navlinks a:hover{color:var(--ink);text-decoration:none;border-color:var(--amber)}
+  .iconbtn{background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:10px;
+    width:40px;height:36px;cursor:pointer;display:grid;place-items:center;flex:none;transition:border-color .2s,color .2s}
+  .iconbtn .ic{width:18px;height:18px}
+  .iconbtn:hover{border-color:var(--amber);color:var(--amber-ink)}
+
+  /* level bar */
+  .levelbar{position:sticky;top:62px;z-index:55;background:color-mix(in srgb,var(--bg) 82%,transparent);
+    backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:10px 0}
+  .levelrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .levelrow .lab{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.02em}
+  .pills{display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:12px;border:1px solid var(--line)}
+  .pill{border:none;background:transparent;color:var(--muted);padding:7px 14px;border-radius:9px;cursor:pointer;
+    font-size:13px;font-weight:600;font-family:var(--mono);transition:background .2s,color .2s;display:flex;align-items:center;gap:7px}
+  .pill .ic{width:15px;height:15px}
+  .pill:hover{color:var(--ink)}
+  .pill.active{background:var(--surface);color:var(--primary);box-shadow:var(--shadow-sm)}
+  body.dark .pill.active{color:var(--blue)}
+
+  /* hero */
+  .hero{position:relative;overflow:hidden;padding:78px 0 52px;text-align:center}
+  .hero .gridbg{position:absolute;inset:0;pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:34px 34px;
+    -webkit-mask-image:radial-gradient(120% 80% at 50% 0%,#000 0%,transparent 68%);
+            mask-image:radial-gradient(120% 80% at 50% 0%,#000 0%,transparent 68%);opacity:.5}
+  .hero .glow{position:absolute;left:50%;top:-160px;transform:translateX(-50%);width:760px;height:520px;
+    background:radial-gradient(closest-side,color-mix(in srgb,var(--blue) 26%,transparent),transparent 72%);
+    pointer-events:none;filter:blur(6px)}
+  .hero .wrap{position:relative}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--primary);font-weight:600;background:var(--blue-soft);
+    padding:7px 14px;border-radius:20px;border:1px solid color-mix(in srgb,var(--blue) 22%,transparent)}
+  body.dark .kicker{color:var(--blue)}
+  .hero h1{font-size:clamp(33px,5.6vw,56px);margin:.42em 0 .28em;font-weight:700}
+  .hero h1 .u{background:linear-gradient(120deg,var(--blue),var(--primary));-webkit-background-clip:text;
+    background-clip:text;color:transparent}
+  .hero .sub{font-size:clamp(16px,2.2vw,20px);color:var(--muted);max-width:620px;margin:0 auto}
+  .headline-stat{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin:38px 0 8px}
+  .hstat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px 24px;
+    box-shadow:var(--shadow);min-width:158px;position:relative;overflow:hidden}
+  .hstat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--acc,var(--blue))}
+  .hstat .n{font-family:var(--mono);font-size:34px;font-weight:700;line-height:1;letter-spacing:-.03em}
+  .hstat .c{font-size:12px;color:var(--muted);margin-top:8px;font-family:var(--mono)}
+  .hint{font-size:13px;color:var(--muted);margin-top:28px;font-family:var(--mono)}
+  .hint b{color:var(--amber-ink);font-weight:600}
+
+  /* sections */
+  section{padding:60px 0;border-top:1px solid var(--line)}
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--acc,var(--blue));font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+  .eyebrow .bar{height:2px;width:26px;background:var(--acc,var(--blue));display:inline-block;border-radius:2px}
+  section h2{font-size:clamp(25px,3.6vw,34px);margin:0 0 12px;font-weight:700}
+  .lede{font-size:18.5px;color:var(--muted);margin:0 0 24px;max-width:70ch}
+  p{margin:0 0 16px}
+
+  /* tiered content */
+  .tier{display:none}
+  body.lv-hs .tier.hs,body.lv-ug .tier.ug,body.lv-phd .tier.phd{display:block;animation:fade .35s ease-out}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .tiers{position:relative;border:1px solid var(--line);border-left:3px solid var(--tc,var(--blue));
+    background:var(--surface);border-radius:0 var(--radius) var(--radius) 0;padding:18px 22px;margin:0 0 22px;box-shadow:var(--shadow-sm)}
+  body.lv-hs .tiers{--tc:var(--green)} body.lv-ug .tiers{--tc:var(--blue)} body.lv-phd .tiers{--tc:var(--amber)}
+  .tiertag{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--muted);display:inline-flex;align-items:center;gap:7px;margin-bottom:8px}
+  .tiertag .ic{width:14px;height:14px;color:var(--tc,var(--blue))}
+  .tiers p:last-child{margin-bottom:0}
+
+  /* cards */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:22px 24px;
+    box-shadow:var(--shadow-sm);margin:18px 0}
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:720px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .statcard{text-align:center;padding:22px 18px;position:relative;overflow:hidden}
+  .statcard .big{font-family:var(--mono);font-size:29px;font-weight:700;color:var(--primary);letter-spacing:-.02em}
+  body.dark .statcard .big{color:var(--blue)}
+  .statcard .big.red{color:var(--red)} .statcard .big.green{color:var(--green)}
+  .statcard .lbl{font-size:13px;color:var(--muted);margin-top:6px}
+  .note{display:flex;gap:14px;border:1px solid var(--line);border-left:4px solid var(--amber);
+    background:color-mix(in srgb,var(--amber) 7%,var(--surface));padding:16px 18px;border-radius:0 12px 12px 0;
+    margin:20px 0;font-size:15.5px}
+  .note .ic{width:22px;height:22px;color:var(--amber-ink);flex:none;margin-top:1px}
+  .note b{color:var(--amber-ink)}
+  .cardhead{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+  .cardhead .badge{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex:none;
+    background:var(--blue-soft);color:var(--primary)}
+  body.dark .cardhead .badge{color:var(--blue)}
+  .cardhead .badge .ic{width:20px;height:20px}
+  .cardhead h3{margin:0;font-size:18px}
+
+  .modelcard h3{margin:0 0 10px;font-size:18px;display:flex;align-items:center;gap:9px}
+  .chip{font-family:var(--mono);font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;
+    background:var(--surface2);color:var(--muted);letter-spacing:.03em;text-transform:uppercase}
+  .chip.star{background:var(--amber);color:#3a2600}
+  body.dark .chip.star{color:#241900}
+  .modelcard p{font-size:14.5px;margin:0;color:var(--muted)}
+
+  /* radius demo */
+  .demo{margin-top:16px}
+  .demo .track{height:24px;background:var(--surface2);border-radius:7px;overflow:hidden;border:1px solid var(--line)}
+  .demo .fill{height:100%;width:13%;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--amber));
+    transition:width .6s cubic-bezier(.2,.7,.2,1)}
+  .demo .row{display:flex;justify-content:space-between;margin-top:8px;font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+  .demo .row b{color:var(--amber-ink)}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:15px;margin:8px 0}
+  th,td{padding:11px 12px;text-align:left;border-bottom:1px solid var(--line)}
+  th{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+  .match{color:var(--green);font-weight:600;font-family:var(--mono);font-size:13.5px;display:inline-flex;align-items:center;gap:5px}
+  .match .ic{width:15px;height:15px}
+  tr.hi td{background:color-mix(in srgb,var(--blue) 8%,transparent)}
+
+  /* toggle + buttons */
+  .chartcard{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:22px 22px 14px;margin:20px 0}
+  .ctrls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .ctrls .title{font-family:var(--mono);font-weight:600;font-size:15px;margin-right:auto;letter-spacing:-.01em}
+  .toggle{display:flex;gap:4px;background:var(--surface2);padding:4px;border-radius:11px;border:1px solid var(--line)}
+  .toggle button{border:none;background:transparent;color:var(--muted);padding:7px 15px;border-radius:8px;cursor:pointer;
+    font-weight:600;font-size:13px;font-family:var(--mono);transition:background .2s,color .2s}
+  .toggle button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-sm)}
+  .btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;padding:7px 13px;
+    cursor:pointer;font-size:12.5px;font-weight:600;font-family:var(--mono);display:inline-flex;align-items:center;gap:6px;transition:border-color .2s,color .2s}
+  .btn .ic{width:14px;height:14px}
+  .btn:hover{border-color:var(--amber);color:var(--amber-ink)}
+  .legend{display:flex;gap:18px;font-size:13px;color:var(--muted);align-items:center;flex-wrap:wrap;font-family:var(--mono)}
+  .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+  svg.chart{width:100%;height:auto;display:block;overflow:visible}
+  .cap{font-size:13.5px;color:var(--muted);margin-top:10px;line-height:1.55}
+  .cap b{color:var(--amber-ink)}
+  #tooltip{position:fixed;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;font-family:var(--mono);
+    padding:8px 11px;border-radius:8px;opacity:0;transition:opacity .12s;z-index:200;white-space:nowrap;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);font-weight:500;line-height:1.5}
+
+  /* findings */
+  .findcard{padding:24px}
+  .findcard .num{font-family:var(--mono);font-size:15px;font-weight:700;color:#fff;
+    background:linear-gradient(135deg,var(--blue),var(--primary));width:34px;height:34px;border-radius:9px;
+    display:grid;place-items:center;margin-bottom:12px}
+  .findcard h3{margin:0 0 7px;font-size:18px}
+  .findcard p{font-size:14.5px;margin:0;color:var(--muted)}
+
+  details{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:2px 18px;margin:8px 0}
+  summary{cursor:pointer;font-weight:600;padding:12px 0;font-family:var(--mono);font-size:14px}
+  dl.gloss{columns:2;column-gap:38px;margin-top:8px} @media(max-width:720px){dl.gloss{columns:1}}
+  dl.gloss div{break-inside:avoid;margin-bottom:14px}
+  dl.gloss dt{font-family:var(--mono);font-weight:600;font-size:14px;color:var(--ink)}
+  dl.gloss dd{margin:2px 0 0;font-size:14px;color:var(--muted)}
+
+  footer{padding:48px 0 64px;color:var(--muted);font-size:14px;border-top:1px solid var(--line)}
+  footer .wrap{display:flex;flex-direction:column;gap:8px}
+  footer b{color:var(--ink);font-family:var(--mono)}
+
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease-out,transform .6s ease-out}
+  .reveal.in{opacity:1;transform:none}
+
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    *,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}
+    .reveal{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body class="lv-ug">
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cap" viewBox="0 0 24 24"><path d="M21.42 10.92a1 1 0 0 0-.02-1.84L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.84l8.57 3.9a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-scope" viewBox="0 0 24 24"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M8 6h4v4a2 2 0 0 1-4 0z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-flask" viewBox="0 0 24 24"><path d="M14 2v6a2 2 0 0 0 .24.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.75-2.96l5.51-10.08A2 2 0 0 0 10 8V2"/><path d="M6.45 15h11.1"/><path d="M8.5 2h7"/></symbol>
+  <symbol id="i-scale" viewBox="0 0 24 24"><path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5C17.7 10.2 18 9 18 8a6 6 0 0 0-12 0c0 1 .2 2.2 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="M12.8 2.2a2 2 0 0 0-1.6 0L2.6 6.1a1 1 0 0 0 0 1.8l8.6 3.9a2 2 0 0 0 1.6 0l8.6-3.9a1 1 0 0 0 0-1.8Z"/><path d="m22 17.6-9.2 4.2a2 2 0 0 1-1.6 0L2 17.6"/><path d="m22 12.6-9.2 4.2a2 2 0 0 1-1.6 0L2 12.6"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="m6 3 14 9-14 9V3z"/></symbol>
+  <symbol id="i-atom" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><path d="M20.2 20.2c2-2-1-8-6-13.5S3.8 2.8 3.8 3.8s3 6 8 11.5 6.4 7 8.4 4.9Z"/><path d="M3.8 20.2c-2-2 1-8 6-13.5s8.4-3.9 10.4-1.9-1 8-6 13.5-8.4 3.9-10.4 1.9Z"/></symbol>
+  <symbol id="i-flow" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M9 6h6a2 2 0 0 1 2 2v7"/></symbol>
+</svg>
+
+<div id="progress"></div>
+<div id="tooltip"></div>
+
+<header class="nav"><div class="wrap navrow">
+  <div class="brand"><span class="mark"><svg class="ic"><use href="#i-atom"/></svg></span>LANTERN<span style="color:var(--muted)">/</span>Reproduced</div>
+  <nav class="navlinks" aria-label="Sections">
+    <a href="#problem">problem</a>
+    <a href="#numbers">features</a>
+    <a href="#detective">the_puzzle</a>
+    <a href="#models">models</a>
+    <a href="#reproduce">reproduce</a>
+    <a href="#stress">stress_test</a>
+    <a href="#findings">findings</a>
+    <a href="#glossary">glossary</a>
+  </nav>
+  <button class="iconbtn" id="themebtn" title="Toggle dark mode" aria-label="Toggle dark mode"><svg class="ic"><use href="#i-moon"/></svg></button>
+</div></header>
+
+<div class="levelbar"><div class="wrap levelrow">
+  <span class="lab">explain_at_level:</span>
+  <div class="pills" id="pills" role="group" aria-label="Explanation depth">
+    <button class="pill" data-lv="hs" aria-pressed="false"><svg class="ic"><use href="#i-cap"/></svg>High&nbsp;School</button>
+    <button class="pill active" data-lv="ug" aria-pressed="true"><svg class="ic"><use href="#i-book"/></svg>Undergrad</button>
+    <button class="pill" data-lv="phd" aria-pressed="false"><svg class="ic"><use href="#i-scope"/></svg>PhD</button>
+  </div>
+  <span class="lab" style="margin-left:auto;opacity:.75">↑ rewrites every explanation</span>
+</div></div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="gridbg"></div><div class="glow"></div>
+  <div class="wrap">
+    <span class="kicker"><svg class="ic" style="width:14px;height:14px"><use href="#i-flask"/></svg> An independent reproduction</span>
+    <h1>Can a computer predict a<br><span class="u">better vaccine bubble?</span></h1>
+    <p class="sub">The LANTERN paper says yes. We rebuilt its model from scratch to check — then pushed it until it broke. Here's the whole story, at whatever depth you like.</p>
+    <div class="headline-stat">
+      <div class="hstat" style="--acc:var(--blue)"><div class="n" style="color:var(--blue)">0.812</div><div class="c">our model · R²</div></div>
+      <div class="hstat" style="--acc:var(--amber)"><div class="n" style="color:var(--amber-ink)">≈</div><div class="c">statistically equal</div></div>
+      <div class="hstat" style="--acc:var(--primary)"><div class="n">0.816</div><div class="c">paper · R²</div></div>
+    </div>
+    <p class="hint">Use the <b>High&nbsp;School / Undergrad / PhD</b> switch to change how technical it gets. Charts are interactive — hover and click.</p>
+  </div>
+</div>
+
+<main>
+
+<!-- 1 PROBLEM -->
+<section id="problem" style="--acc:var(--blue)"><div class="wrap reveal">
+  <div class="eyebrow"><span class="bar"></span>Part 01 · The Problem</div>
+  <h2>Tiny fat bubbles that carry medicine</h2>
+  <p class="lede">To work, an mRNA vaccine has to get its instructions <em>inside</em> your cells. It hitches a ride in a microscopic bubble of fat. Some bubbles are great couriers; most are terrible.</p>
+  <div class="tiers">
+    <div class="tier hs"><span class="tiertag"><svg class="ic"><use href="#i-cap"/></svg>High School</span>
+      <p>mRNA is a set of instructions that tells your cells what to build (for a vaccine, a harmless piece of a virus so your body learns to fight it). But mRNA is fragile and cells don't let strangers in. So scientists wrap it in a tiny fat bubble — a <b>lipid nanoparticle</b> — that smuggles it inside.</p>
+      <p>How good a bubble is at delivering its cargo is called its <b>transfection efficiency</b>. High = great delivery. The problem: there are millions of possible fat molecules, and testing each one in a lab is slow and expensive. The dream is a computer that can just <em>predict</em> the score from the molecule's design.</p></div>
+    <div class="tier ug"><span class="tiertag"><svg class="ic"><use href="#i-book"/></svg>Undergrad</span>
+      <p>Lipid nanoparticles (LNPs) encapsulate mRNA and mediate its delivery into the cytosol. The <b>ionizable lipid</b> component dominates delivery performance, and small changes to its structure swing <b>transfection efficiency</b> by orders of magnitude.</p>
+      <p>Wet-lab screening is low-throughput and costly, which motivates a structure–activity (QSAR-style) machine-learning model: feed in the molecule's structure, predict the efficiency, and screen millions of candidates <em>in silico</em> before synthesizing any.</p></div>
+    <div class="tier phd"><span class="tiertag"><svg class="ic"><use href="#i-scope"/></svg>PhD</span>
+      <p>The regression target is a normalized reporter-expression readout over an ionizable-lipid library (the AGILE / Xu et al. set), distributed on a roughly log-scaled range of about [−2.3, 16]. The learning problem is structure→activity regression under a fixed featurization.</p>
+      <p>The paper's thesis is provocative: classical molecular representations paired with <em>shallow</em> models rival a purpose-built pretrained graph neural network (AGILE) on the refined dataset — implying the expensive representation learning buys little here. Our job is to test that claim independently, then probe its generalization.</p></div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-bulb"/></svg><div><b>What we're predicting:</b> a single number per molecule — how well its fat bubble delivers mRNA into cells. Every model in this project is a machine that guesses that number from the molecule's structure.</div></div>
+</div></section>
+
+<!-- 2 NUMBERS -->
+<section id="numbers" style="--acc:var(--blue)"><div class="wrap reveal">
+  <div class="eyebrow"><span class="bar"></span>Part 02 · The Key Idea</div>
+  <h2>Turning a molecule into numbers</h2>
+  <p class="lede">Computers can't read molecules — only numbers. So step one is translating each molecule into a list of numbers that describes it. This is called <em>featurization</em>.</p>
+  <div class="tiers">
+    <div class="tier hs"><span class="tiertag"><svg class="ic"><use href="#i-cap"/></svg>High School</span>
+      <p>Chemists write a molecule as a short text code called a <b>SMILES</b> string. Our program reads that code and produces <b>2,258 numbers</b> that describe the molecule, using two "lenses":</p>
+      <p>• A <b>fingerprint</b> (2,048 numbers): a checklist of little building-block patterns — "does this molecule contain this shape, and how many times?"<br>• A <b>nutrition label</b> (210 numbers): overall properties like weight, greasiness, and number of rings.</p>
+      <p>Glue them together → 2,258 numbers per molecule. That's what every model actually learns from.</p></div>
+    <div class="tier ug"><span class="tiertag"><svg class="ic"><use href="#i-book"/></svg>Undergrad</span>
+      <p>Each SMILES is mapped to two feature blocks. Block 1: a <b>2,048-dimensional count Morgan (circular) fingerprint</b> — it hashes each atom's local substructure environment into bins and counts occurrences. Block 2: <b>210 RDKit physicochemical descriptors</b> (molecular weight, LogP, ring counts, topological indices…).</p>
+      <p>Concatenating gives a fixed <b>2,258-dimensional</b> input vector, shared identically across all four models so comparisons are apples-to-apples.</p></div>
+    <div class="tier phd"><span class="tiertag"><svg class="ic"><use href="#i-scope"/></svg>PhD</span>
+      <p>X = [ count-ECFP(2048) ‖ RDKitDescriptors(210) ] ∈ ℝ<sup>2258</sup>. The fingerprint is a hashed <em>count</em> vector (not binary) with chirality enabled; descriptors are DeepChem's <code>RDKitDescriptors</code> set in alphabetical order, with <code>Ipc</code> computed as its average variant to avoid numerical blow-up.</p>
+      <p>Prior to modeling, features and target are jointly scaled with a single <code>MinMaxScaler</code> to [−1, 1] over all rows — a procedure we reproduce exactly (including its mild leakage; see the Reproduce section) for comparability.</p></div>
+  </div>
+  <div class="grid g3">
+    <div class="card statcard"><div class="big">SMILES</div><div class="lbl">the molecule as text · our input</div></div>
+    <div class="card statcard"><div class="big">2048 + 210</div><div class="lbl">fingerprint + descriptor numbers</div></div>
+    <div class="card statcard"><div class="big">= 2258</div><div class="lbl">numbers fed to every model</div></div>
+  </div>
+</div></section>
+
+<!-- 3 DETECTIVE -->
+<section id="detective" style="--acc:var(--amber)"><div class="wrap reveal">
+  <div class="eyebrow"><span class="bar"></span>Part 03 · The Hardest Part</div>
+  <h2>Cracking the feature recipe</h2>
+  <p class="lede">The authors gave us their final numbers as an "answer key," but not a clear recipe. We had to reverse-engineer our own recipe until our numbers matched theirs exactly. Two mysteries stood in the way.</p>
+
+  <div class="card">
+    <div class="cardhead"><span class="badge"><svg class="ic"><use href="#i-search"/></svg></span><h3>Mystery #1 — the fingerprint that was 8× too small</h3></div>
+    <div class="tiers" style="margin-bottom:14px">
+      <div class="tier hs"><span class="tiertag"><svg class="ic"><use href="#i-cap"/></svg>High School</span>
+        <p>Our first fingerprint found about <b>56</b> patterns per molecule. Theirs found about <b>420</b> — nearly 8 times more! We dug into their code and found the reason: their setting looked at patterns of <em>every</em> size, not just tiny ones. Once we matched that, our fingerprints matched theirs almost perfectly.</p></div>
+      <div class="tier ug"><span class="tiertag"><svg class="ic"><use href="#i-book"/></svg>Undergrad</span>
+        <p>Reproducing the fingerprint meant matching DeepChem's <code>CircularFingerprint(radius=1024, counts, chiral)</code>. That radius is effectively <b>unbounded</b> — it enumerates substructure environments of every size — which is why ~420 bins are populated versus ~56 at the textbook radius 2. After the fix: <b>1,052 / 1,100 molecules matched exactly.</b></p></div>
+      <div class="tier phd"><span class="tiertag"><svg class="ic"><use href="#i-scope"/></svg>PhD</span>
+        <p>The first positional argument to DeepChem's <code>CircularFingerprint</code> is the Morgan radius; 1024 saturates environment enumeration, densifying the folded 2,048-vector. Our exact-match audit isolated the 48 non-matching molecules as pure version-dependent hash reshuffling — total counts invariant, max per-bin |Δ| = 3 — not a semantic difference.</p></div>
+    </div>
+    <div class="demo">
+      <div class="cap" style="margin-bottom:8px">Patterns detected per molecule — click to compare:</div>
+      <div class="toggle" id="radtoggle" style="width:max-content" role="group" aria-label="Fingerprint radius">
+        <button data-r="2" class="active">radius 2 · our first try</button>
+        <button data-r="inf">unlimited · the answer</button>
+      </div>
+      <div style="margin-top:12px">
+        <div class="track"><div class="fill" id="radbar"></div></div>
+        <div class="row"><span id="radnum"><b>≈ 56 patterns</b></span><span>out of 2,048 bins</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><span class="badge"><svg class="ic"><use href="#i-search"/></svg></span><h3>Mystery #2 — which 210 descriptors, in what order?</h3></div>
+    <div class="tiers" style="margin-bottom:0">
+      <div class="tier hs"><span class="tiertag"><svg class="ic"><use href="#i-cap"/></svg>High School</span>
+        <p>Our chemistry software offered <b>217</b> possible properties, but the answer key used exactly <b>210</b>. Which 7 were dropped, and in what order? We lined them up one by one and discovered the authors used a slightly <em>older</em> software version missing 7 newer properties. After matching that, <b>209 of 210 matched exactly</b> — the last one is off by a rounding-level amount.</p></div>
+      <div class="tier ug"><span class="tiertag"><svg class="ic"><use href="#i-book"/></svg>Undergrad</span>
+        <p>The 210 descriptors are DeepChem's set in alphabetical order: the current 217 minus 7 newer RDKit additions, with <code>Ipc</code> set to its average variant. Result: <b>209/210 columns exact.</b> The lone holdout, <code>NumHAcceptors</code>, differs by ≤1 on some molecules (r = 0.93) due to a definitional change between RDKit versions.</p></div>
+      <div class="tier phd"><span class="tiertag"><svg class="ic"><use href="#i-scope"/></svg>PhD</span>
+        <p>Column alignment across all 1,100 rows recovered the exact descriptor list and ordering. The residual discrepancy is a <code>NumHAcceptors</code> definitional drift (|Δ| ≤ 1, r = 0.93) that cannot be undone without pinning the authors' exact RDKit build. Post-scaling, one of 210 features off by ≤1 is negligible — confirmed by the matching baseline scores.</p></div>
+    </div>
+  </div>
+
+  <div class="grid g2">
+    <div class="card statcard"><div class="big">1052 / 1100</div><div class="lbl">fingerprints exactly reproduced (rest differ only cosmetically)</div></div>
+    <div class="card statcard"><div class="big">209 / 210</div><div class="lbl">descriptors exactly reproduced</div></div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-layers"/></svg><div><b>Why it matters:</b> this is the foundation. Once our numbers provably matched theirs, every later result stands on solid ground.</div></div>
+</div></section>
+
+<!-- 4 MODELS -->
+<section id="models" style="--acc:var(--blue)"><div class="wrap reveal">
+  <div class="eyebrow"><span class="bar"></span>Part 04 · The Contestants</div>
+  <h2>Four models, simplest to fanciest</h2>
+  <p class="lede">All four see the same 2,258 numbers. They differ in how they turn those numbers into a prediction.</p>
+  <div class="grid g2">
+    <div class="card modelcard"><h3>kNN <span class="chip">simplest</span></h3>
+      <div class="tiers" style="margin:0;border:none;padding:0;box-shadow:none;background:none">
+        <div class="tier hs"><p>To predict a new molecule, find the 5 most similar molecules it already knows and average their scores. It doesn't really "learn" — it looks up look-alikes. <b>Remember this one — it wins later.</b></p></div>
+        <div class="tier ug"><p>k-Nearest Neighbors (k = 5, uniform weights): prediction = mean of the 5 closest training points in feature space. A local, non-parametric baseline.</p></div>
+        <div class="tier phd"><p>A local constant estimator; no training beyond indexing. Its inductive bias is smoothness in the chosen metric — exactly what makes it robust under distribution shift.</p></div>
+      </div></div>
+    <div class="card modelcard"><h3>Random Forest <span class="chip">middle</span></h3>
+      <div class="tiers" style="margin:0;border:none;padding:0;box-shadow:none;background:none">
+        <div class="tier hs"><p>Builds 100 little yes/no "flowcharts" (decision trees) and averages their votes.</p></div>
+        <div class="tier ug"><p>An ensemble of 100 regression trees (bagging + feature subsampling), predictions averaged. Handles nonlinearity and feature interactions.</p></div>
+        <div class="tier phd"><p>Bootstrap-aggregated CART regressors, squared-error criterion. Variance reduction via decorrelated trees; limited extrapolation beyond the training envelope.</p></div>
+      </div></div>
+    <div class="card modelcard"><h3>SVR <span class="chip">middle</span></h3>
+      <div class="tiers" style="margin:0;border:none;padding:0;box-shadow:none;background:none">
+        <div class="tier hs"><p>Fits a smooth curved surface through the data and reads predictions off it.</p></div>
+        <div class="tier ug"><p>Support Vector Regression with an RBF kernel: fits a smooth nonlinear function using support vectors and an ε-insensitive loss.</p></div>
+        <div class="tier phd"><p>Kernel estimator in an RBF-induced RKHS; deterministic given data, hence zero seed variance — useful as a pipeline-correctness check.</p></div>
+      </div></div>
+    <div class="card modelcard"><h3>MLP <span class="chip star">the star</span></h3>
+      <div class="tiers" style="margin:0;border:none;padding:0;box-shadow:none;background:none">
+        <div class="tier hs"><p>A neural network — a learning machine with 7 stages. It guesses, sees how wrong it was, and nudges itself to improve, thousands of times. This is the paper's best model.</p></div>
+        <div class="tier ug"><p>A 7-layer feedforward net (2258→200→300→500→500→300→200→1), ReLU activations, Adam optimizer, MSE loss, ~100 epochs with best-validation-epoch selection.</p></div>
+        <div class="tier phd"><p>MLP, lr 2e-4, batch 100; "early stopping" = restoring argmin-val-loss weights over a full 100-epoch run. Highest in-distribution capacity, but most exposed to covariate shift (shown later).</p></div>
+      </div></div>
+  </div>
+</div></section>
+
+<!-- 5 REPRODUCE -->
+<section id="reproduce" style="--acc:var(--green)"><div class="wrap reveal">
+  <div class="eyebrow"><span class="bar"></span>Part 05 · Did It Reproduce?</div>
+  <h2>The headline result — matched</h2>
+  <p class="lede">We trained the star model on the same data split the authors used and compared all four grades. Because a neural network varies run-to-run, we trained it 10 times and averaged.</p>
+  <div class="tiers">
+    <div class="tier hs"><span class="tiertag"><svg class="ic"><use href="#i-cap"/></svg>High School</span>
+      <p>The score is called <b>R²</b>: 1.0 is a perfect predictor, 0.0 is useless. Our model scored <b>0.812</b>; the paper reported <b>0.816</b>. The tiny gap is just the model's normal run-to-run luck — basically the same score. It reproduced.</p></div>
+    <div class="tier ug"><span class="tiertag"><svg class="ic"><use href="#i-book"/></svg>Undergrad</span>
+      <p>Over 10 seeds the MLP reached R² = <b>0.8123 ± 0.0107</b> versus the paper's 0.8161 — well within one standard deviation. RMSE, MAE and Pearson r all bracket the reported values too. The deterministic baselines (kNN, SVR) match to ~0.01, isolating our pipeline from theirs.</p></div>
+    <div class="tier phd"><span class="tiertag"><svg class="ic"><use href="#i-scope"/></svg>PhD</span>
+      <p>All four metrics contain the reported values within seed variance (σ<sub>R²</sub> ≈ 0.011). Single-seed 0.799 vs 10-seed 0.812 quantifies initialization/minibatch stochasticity. SVR matching to ~1e-2 rules out featurization or preprocessing divergence as a confound.</p></div>
+  </div>
+  <table>
+    <thead><tr><th>Metric · MLP, random split</th><th class="num">Our reproduction</th><th class="num">Paper</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr class="hi"><td>R² &nbsp;(higher = better)</td><td class="num" id="m_r2">0.8123 ± 0.0107</td><td class="num">0.8161</td><td><span class="match"><svg class="ic"><use href="#i-check"/></svg>within noise</span></td></tr>
+      <tr><td>RMSE &nbsp;(lower = better)</td><td class="num" id="m_rmse">1.4450</td><td class="num">1.4308</td><td><span class="match"><svg class="ic"><use href="#i-check"/></svg></span></td></tr>
+      <tr><td>MAE &nbsp;(lower = better)</td><td class="num" id="m_mae">1.0978</td><td class="num">1.1003</td><td><span class="match"><svg class="ic"><use href="#i-check"/></svg></span></td></tr>
+      <tr><td>Pearson r &nbsp;(higher = better)</td><td class="num" id="m_r">0.9023</td><td class="num">0.9053</td><td><span class="match"><svg class="ic"><use href="#i-check"/></svg></span></td></tr>
+    </tbody>
+  </table>
+  <div class="chartcard">
+    <div class="ctrls">
+      <span class="title">Predicted vs. true score — each dot is a test molecule</span>
+      <div class="toggle" id="scatoggle" role="group" aria-label="Split for scatter">
+        <button data-split="random" class="active">random split</button>
+        <button data-split="scaffold">scaffold split</button>
+      </div>
+    </div>
+    <svg id="scatter" class="chart" viewBox="0 0 560 520" role="img" aria-label="Scatter plot of predicted versus true transfection score"></svg>
+    <div class="cap">Dots on the dashed diagonal = perfect predictions. Switch to <b>scaffold split</b> to watch the cloud scatter away from the line — the model getting worse on unfamiliar molecules (previewed here, explained next). <span id="scatr2" style="color:var(--amber-ink);font-weight:600"></span></div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-scale"/></svg><div><b>Honesty note:</b> the authors' scaling step peeks at the test data — a mild "data leak" that slightly inflates everyone's scores. We copied it on purpose so our numbers are directly comparable, and flagged it. It doesn't change which model wins.</div></div>
+</div></section>
+
+<!-- 6 STRESS -->
+<section id="stress" style="--acc:var(--red)"><div class="wrap reveal">
+  <div class="eyebrow"><span class="bar"></span>Part 06 · The Stress Test · our contribution</div>
+  <h2>What happens on molecules it's never seen?</h2>
+  <p class="lede">The random test was a bit of an "open-book exam" — test molecules often had close look-alikes in the study set. So we ran a harder, "closed-book" test: hide entire structural families, so the test molecules are genuinely new shapes.</p>
+  <div class="tiers">
+    <div class="tier hs"><span class="tiertag"><svg class="ic"><use href="#i-cap"/></svg>High School</span>
+      <p>A <b>scaffold</b> is a molecule's core skeleton. In a <b>scaffold split</b>, whole families with the same skeleton go <em>only</em> into the exam — so the model faces brand-new shapes. The result below is dramatic: the fancy model's score falls from 0.81 to 0.49, and the <em>simplest</em> model (kNN) becomes the best.</p></div>
+    <div class="tier ug"><span class="tiertag"><svg class="ic"><use href="#i-book"/></svg>Undergrad</span>
+      <p>Under a <b>Murcko scaffold split</b> (an out-of-distribution test), the MLP collapses 0.81 → 0.49, the model ranking <em>inverts</em> to kNN &gt; MLP &gt; RF &gt; SVR, and — not reported in the paper — the MLP's seed variance inflates 5×. kNN barely moves (Δ ≈ 0.02).</p></div>
+    <div class="tier phd"><span class="tiertag"><svg class="ic"><use href="#i-scope"/></svg>PhD</span>
+      <p>Bemis–Murcko scaffold partitioning induces covariate shift between train and test. Flexible learners overfit the training manifold and degrade most; kNN, as a local estimator, degrades gracefully. Variance inflation (σ 0.011 → 0.055) signals unstable optima under shift. Implication: <b>random-split model selection is anti-correlated with prospective, novel-scaffold utility.</b></p></div>
+  </div>
+  <div class="chartcard">
+    <div class="ctrls">
+      <span class="title">Test R² by model — random vs. scaffold split</span>
+      <button class="btn" id="replay"><svg class="ic"><use href="#i-play"/></svg>Replay</button>
+    </div>
+    <div class="legend" style="margin-bottom:8px">
+      <span><span class="swatch" style="background:var(--blue)"></span>Random split · familiar</span>
+      <span><span class="swatch" style="background:var(--red)"></span>Scaffold split · novel</span>
+      <span style="opacity:.8">whiskers = spread over 10 runs · hover a bar</span>
+    </div>
+    <svg id="bars" class="chart" viewBox="0 0 900 440" role="img" aria-label="Bar chart of test R-squared by model, random versus scaffold split"></svg>
+    <div class="cap">Watch the red bars: the fancier the model, the harder it falls. Only <b>kNN</b> barely drops — and it ends up tallest on the novel test.</div>
+  </div>
+  <div class="grid g3" style="margin-top:22px">
+    <div class="card findcard"><div class="num">1</div><h3>The star flops</h3><p>The MLP loses ~40% of its skill (0.81 → 0.49) on new molecule shapes. Much of its shine was recognizing look-alikes.</p></div>
+    <div class="card findcard"><div class="num">2</div><h3>Rankings flip</h3><p>Best on the easy test → worst choice for the real job. The <em>simplest</em> model, kNN, becomes the most accurate on novel molecules.</p></div>
+    <div class="card findcard"><div class="num">3</div><h3>The net gets jumpy</h3><p>Beyond scoring lower, the MLP's run-to-run spread grows <b>5×</b>. kNN is perfectly steady — most accurate <em>and</em> most reliable.</p></div>
+  </div>
+</div></section>
+
+<!-- 7 FINDINGS -->
+<section id="findings" style="--acc:var(--amber)"><div class="wrap reveal">
+  <div class="eyebrow"><span class="bar"></span>Part 07 · The Bottom Line</div>
+  <h2>What it all means</h2>
+  <div class="tiers">
+    <div class="tier hs"><span class="tiertag"><svg class="ic"><use href="#i-cap"/></svg>High School</span>
+      <p><b>Did it reproduce?</b> Yes — we rebuilt the paper's best model from scratch and got the same score. The claim is real and repeatable.</p>
+      <p><b>The catch we found:</b> that great score comes from an "open-book" test. On a fair "closed-book" test with new molecule shapes, the fancy model loses nearly half its skill and gets unreliable — while the simplest method holds up best. So for designing genuinely new medicines, don't trust the fancy model just because it won the easy test.</p></div>
+    <div class="tier ug"><span class="tiertag"><svg class="ic"><use href="#i-book"/></svg>Undergrad</span>
+      <p><b>Reproduced:</b> from-scratch features + training code, on the authors' exact splits, give R² = 0.812 vs their 0.816 — statistically identical.</p>
+      <p><b>Generalization caveat:</b> the headline is an in-distribution number. Under a scaffold split the MLP drops to ~0.49 with 5× variance, and kNN becomes both the best and most stable model. Model selection on a random split is misleading for prospective design; kNN is the honest baseline any model must beat.</p></div>
+    <div class="tier phd"><span class="tiertag"><svg class="ic"><use href="#i-scope"/></svg>PhD</span>
+      <p><b>Reproducibility:</b> the headline MLP result and all baselines reproduce within seed variance on identical partitions, using an independently reconstructed featurization validated to the answer key — so the paper's central "shallow beats pretrained GNN" claim holds.</p>
+      <p><b>Robustness contribution:</b> we add a scaffold-split analysis with 10-seed statistics showing (i) mean collapse, (ii) ranking inversion, and (iii) variance inflation for the MLP. Together these argue that in-distribution leaderboards mis-rank models for out-of-distribution lipid design, and that a local estimator (kNN) is a stronger, more stable prior under scaffold shift.</p></div>
+  </div>
+  <div class="grid g4">
+    <div class="card statcard"><div class="big">0.812</div><div class="lbl">reproduced R² · paper 0.816</div></div>
+    <div class="card statcard"><div class="big red">0.49</div><div class="lbl">MLP on novel shapes · from 0.81</div></div>
+    <div class="card statcard"><div class="big green">kNN</div><div class="lbl">best model on novel shapes</div></div>
+    <div class="card statcard"><div class="big">5×</div><div class="lbl">MLP variance blow-up under shift</div></div>
+  </div>
+</div></section>
+
+<!-- GLOSSARY -->
+<section id="glossary" style="--acc:var(--blue)"><div class="wrap reveal">
+  <div class="eyebrow"><span class="bar"></span>Appendix</div>
+  <h2>Glossary</h2>
+  <p class="lede">Every technical term, in one place.</p>
+  <dl class="gloss">
+    <div><dt>Lipid nanoparticle</dt><dd>A tiny fat bubble that delivers mRNA into cells.</dd></div>
+    <div><dt>Transfection efficiency</dt><dd>How well an LNP delivers its cargo — the number we predict.</dd></div>
+    <div><dt>SMILES</dt><dd>A compact text string encoding a molecule's structure.</dd></div>
+    <div><dt>Featurization</dt><dd>Turning a molecule into a list of numbers a computer can learn from.</dd></div>
+    <div><dt>Morgan fingerprint</dt><dd>2,048 numbers counting which structural patterns a molecule contains.</dd></div>
+    <div><dt>RDKit descriptors</dt><dd>210 measured properties (weight, greasiness, ring counts…).</dd></div>
+    <div><dt>Radius</dt><dd>How big a neighborhood the fingerprint inspects. The authors used "unlimited," not the usual 2.</dd></div>
+    <div><dt>Split</dt><dd>Dividing data into training / validation / test groups.</dd></div>
+    <div><dt>Scaffold</dt><dd>A molecule's core skeleton; molecules sharing one are structural cousins.</dd></div>
+    <div><dt>Scaffold split</dt><dd>A hard, realistic split where the test set has brand-new skeletons.</dd></div>
+    <div><dt>kNN</dt><dd>Simplest model: average the 5 most similar known molecules. Won the hard test.</dd></div>
+    <div><dt>Random Forest</dt><dd>Averages the votes of 100 small decision trees.</dd></div>
+    <div><dt>SVR</dt><dd>Fits a smooth curved surface through the data.</dd></div>
+    <div><dt>MLP / neural network</dt><dd>A layered learning machine; the paper's best model.</dd></div>
+    <div><dt>Epoch</dt><dd>One full pass of the model through the training data.</dd></div>
+    <div><dt>Early stopping</dt><dd>Keeping the model version that scored best on the validation quiz.</dd></div>
+    <div><dt>R²</dt><dd>Main grade: 1.0 perfect, 0.0 useless.</dd></div>
+    <div><dt>RMSE / MAE</dt><dd>Average prediction error (RMSE punishes big misses more). Lower is better.</dd></div>
+    <div><dt>Pearson r</dt><dd>How well predictions and truth move together (1.0 = perfect).</dd></div>
+    <div><dt>Standard deviation</dt><dd>How much a number bounces between runs — a consistency measure.</dd></div>
+    <div><dt>Data leak</dt><dd>Letting test info influence setup, inflating scores. We copied the authors' mild one for fairness and disclosed it.</dd></div>
+    <div><dt>AGILE</dt><dd>A heavyweight pretrained rival model; scored 0.27. Used as a fixed reference.</dd></div>
+    <div><dt>Out-of-distribution</dt><dd>Test data unlike the training data — the realistic hard case.</dd></div>
+  </dl>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <p><b>LANTERN, Reproduced</b> — an independent reproduction &amp; robustness study.</p>
+  <p>Based on <a href="https://arxiv.org/abs/2507.03209" target="_blank" rel="noopener">arXiv:2507.03209</a> and the authors' <a href="https://github.com/AsalMehradfar/LANTERN" target="_blank" rel="noopener">code</a> (MIT). Reproduction: <a href="https://github.com/Cyrus-progress/lantern-reproduction" target="_blank" rel="noopener">github.com/Cyrus-progress/lantern-reproduction</a>.</p>
+  <p style="opacity:.7">Charts show real outputs from the reproduction pipeline. Numbers are 10-seed means unless noted.</p>
+</div></footer>
+
+<script src="assets/data.js"></script>
+<script>
+const D = window.LANTERN_DATA || {};
+const $ = s => document.querySelector(s);
+const NS = "http://www.w3.org/2000/svg";
+const mk = (t,a={}) => { const e=document.createElementNS(NS,t); for(const k in a) e.setAttribute(k,a[k]); return e; };
+const cs = n => getComputedStyle(document.body).getPropertyValue(n).trim();
+const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* level selector */
+const pills = document.querySelectorAll('#pills .pill');
+function setLevel(lv){
+  document.body.className = document.body.className.replace(/lv-\w+/,'lv-'+lv);
+  pills.forEach(p=>{const on=p.dataset.lv===lv;p.classList.toggle('active',on);p.setAttribute('aria-pressed',on);});
+  try{localStorage.setItem('lantern_lv',lv)}catch(e){}
+}
+pills.forEach(p=>p.addEventListener('click',()=>setLevel(p.dataset.lv)));
+try{const s=localStorage.getItem('lantern_lv'); if(s) setLevel(s);}catch(e){}
+
+/* theme */
+const tb=$('#themebtn');
+function setTheme(d){document.body.classList.toggle('dark',d);
+  tb.querySelector('use').setAttribute('href',d?'#i-sun':'#i-moon');
+  try{localStorage.setItem('lantern_dark',d?'1':'0')}catch(e){} redraw();}
+tb.addEventListener('click',()=>setTheme(!document.body.classList.contains('dark')));
+try{if(localStorage.getItem('lantern_dark')==='1') setTheme(true);}catch(e){}
+
+/* progress */
+addEventListener('scroll',()=>{const h=document.documentElement;
+  $('#progress').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';},{passive:true});
+
+/* scroll reveal (no IntersectionObserver dependency) */
+function revealAll(){document.querySelectorAll('.reveal:not(.in)').forEach(el=>el.classList.add('in'));}
+function revealScan(){
+  const vh=innerHeight||document.documentElement.clientHeight||900;
+  document.querySelectorAll('.reveal:not(.in)').forEach(el=>{
+    if(el.getBoundingClientRect().top < vh*0.9) el.classList.add('in');
+  });
+  if(typeof maybeAnimateCharts==='function') maybeAnimateCharts(vh);
+}
+addEventListener('scroll',revealScan,{passive:true});
+addEventListener('resize',revealScan);
+addEventListener('load',()=>{ if(!innerHeight) revealAll(); });
+
+/* radius mini-demo */
+document.querySelectorAll('#radtoggle button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#radtoggle button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');
+  const inf=b.dataset.r==='inf';
+  $('#radbar').style.width=(inf?95:13)+'%';
+  $('#radnum').innerHTML=inf?'<b>≈ 420 patterns</b>':'<b>≈ 56 patterns</b>';
+}));
+
+/* tooltip */
+const tip=$('#tooltip');
+function showTip(html,x,y){tip.innerHTML=html;tip.style.opacity=1;tip.style.left=(x+14)+'px';tip.style.top=(y+14)+'px';}
+function hideTip(){tip.style.opacity=0;}
+
+/* metric table */
+if(D.metrics&&D.metrics.mlp_random){const m=D.metrics.mlp_random.mine;
+  $('#m_r2').textContent=m.R2.toFixed(4)+' ± '+m.R2std.toFixed(4);
+  $('#m_rmse').textContent=m.RMSE.toFixed(4);
+  $('#m_mae').textContent=m.MAE.toFixed(4);
+  $('#m_r').textContent=m.r.toFixed(4);}
+
+/* BAR CHART */
+function drawBars(anim=true){
+  anim = anim && !REDUCE;
+  const svg=$('#bars'); svg.innerHTML='';
+  const W=900,H=440, pad={l:52,r:16,t:16,b:64};
+  const plotH=H-pad.t-pad.b, plotW=W-pad.l-pad.r;
+  const rows=D.bars.random.map((r,i)=>({model:r.model,rnd:r,scf:D.bars.scaffold[i]}));
+  const yMin=-0.05,yMax=0.9;
+  const Y=v=>pad.t+plotH*(1-(v-yMin)/(yMax-yMin));
+  [0,.2,.4,.6,.8].forEach(g=>{
+    svg.appendChild(mk('line',{x1:pad.l,x2:W-pad.r,y1:Y(g),y2:Y(g),stroke:cs('--line'),'stroke-width':1}));
+    const t=mk('text',{x:pad.l-8,y:Y(g)+4,'text-anchor':'end','font-size':12,fill:cs('--muted'),'font-family':'Fira Code, monospace'});t.textContent=g.toFixed(1);svg.appendChild(t);
+  });
+  const yl=mk('text',{x:15,y:pad.t+plotH/2,'text-anchor':'middle','font-size':12,fill:cs('--muted'),'font-family':'Fira Code, monospace',transform:`rotate(-90 15 ${pad.t+plotH/2})`});yl.textContent='Test R²';svg.appendChild(yl);
+  const n=rows.length, band=plotW/n, bw=Math.min(46,band*0.32), gap=8;
+  const base=Y(0);
+  rows.forEach((r,i)=>{
+    const cx=pad.l+band*i+band/2;
+    const label=mk('text',{x:cx,y:H-pad.b+22,'text-anchor':'middle','font-size':13,fill:cs('--ink'),'font-weight':600,'font-family':'Fira Code, monospace'});
+    label.textContent=r.model+(r.rnd.cited?' *':''); svg.appendChild(label);
+    [['rnd',cs('--blue'),-1],['scf',cs('--red'),1]].forEach(([k,col,side])=>{
+      const d=r[k]; const x=cx+side*(bw/2+gap/2)-bw/2; const y=Y(d.R2), h=base-y;
+      const rect=mk('rect',{x,y:anim?base:y,width:bw,height:anim?0:h,rx:5,fill:col,opacity:d.cited?0.42:0.92,style:'cursor:pointer;transition:opacity .15s'});
+      rect.addEventListener('mousemove',e=>showTip(
+        `${r.model} · ${k==='rnd'?'random':'scaffold'}<br>R² = ${d.R2.toFixed(4)}${d.std?(' ± '+d.std.toFixed(4)):''}${d.cited?'<br>cited (not re-run)':''}`,
+        e.clientX,e.clientY));
+      rect.addEventListener('mouseleave',hideTip);
+      rect.addEventListener('mouseenter',()=>rect.setAttribute('opacity',1));
+      svg.appendChild(rect);
+      const vt=mk('text',{x:x+bw/2,y:y-16,'text-anchor':'middle','font-size':11.5,fill:cs('--muted'),opacity:anim?0:1,'font-family':'Fira Code, monospace'});
+      vt.textContent=d.R2.toFixed(2); svg.appendChild(vt);
+      let wg=null;
+      if(d.std&&d.std>0){wg=mk('g',{opacity:anim?0:0.85});
+        const yTop=Y(d.R2+d.std),yBot=Y(d.R2-d.std),xm=x+bw/2;
+        wg.appendChild(mk('line',{x1:xm,x2:xm,y1:yTop,y2:yBot,stroke:cs('--ink'),'stroke-width':1.5}));
+        wg.appendChild(mk('line',{x1:xm-5,x2:xm+5,y1:yTop,y2:yTop,stroke:cs('--ink'),'stroke-width':1.5}));
+        wg.appendChild(mk('line',{x1:xm-5,x2:xm+5,y1:yBot,y2:yBot,stroke:cs('--ink'),'stroke-width':1.5}));
+        svg.appendChild(wg);}
+      if(anim){
+        const t0=performance.now(),dur=720+i*60;
+        (function step(now){ let p=Math.min(1,(now-t0)/dur); p=1-Math.pow(1-p,3);
+          rect.setAttribute('y',base-h*p); rect.setAttribute('height',h*p);
+          if(p>=1){vt.setAttribute('opacity',1); if(wg)wg.setAttribute('opacity',0.85);}
+          if(p<1) requestAnimationFrame(step);
+        })(t0);
+      }
+    });
+  });
+  const star=mk('text',{x:W-pad.r,y:H-8,'text-anchor':'end','font-size':11,fill:cs('--muted'),'font-family':'Fira Code, monospace'});
+  star.textContent='* AGILE = cited reference, not re-run'; svg.appendChild(star);
+}
+
+/* SCATTER */
+let curSplit='random';
+function scatterDomain(){
+  let lo=Infinity,hi=-Infinity;
+  ['random','scaffold'].forEach(s=>{const o=D.scatter[s]; o.true.concat(o.pred).forEach(v=>{lo=Math.min(lo,v);hi=Math.max(hi,v);});});
+  const pad=(hi-lo)*0.06; return [lo-pad,hi+pad];
+}
+function drawScatter(split){
+  const svg=$('#scatter'); svg.innerHTML='';
+  const o=D.scatter[split]; const W=560,H=520,pad={l:56,r:18,t:18,b:52};
+  const pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const [lo,hi]=scatterDomain();
+  const X=v=>pad.l+pw*(v-lo)/(hi-lo);
+  const Yv=v=>pad.t+ph*(1-(v-lo)/(hi-lo));
+  const ticks=[]; const step=hi-lo>18?5:4; for(let t=Math.ceil(lo/step)*step;t<hi;t+=step) ticks.push(t);
+  ticks.forEach(t=>{
+    svg.appendChild(mk('line',{x1:X(t),x2:X(t),y1:pad.t,y2:H-pad.b,stroke:cs('--line'),'stroke-width':1}));
+    svg.appendChild(mk('line',{x1:pad.l,x2:W-pad.r,y1:Yv(t),y2:Yv(t),stroke:cs('--line'),'stroke-width':1}));
+    const tx=mk('text',{x:X(t),y:H-pad.b+20,'text-anchor':'middle','font-size':11,fill:cs('--muted'),'font-family':'Fira Code, monospace'});tx.textContent=t;svg.appendChild(tx);
+    const ty=mk('text',{x:pad.l-8,y:Yv(t)+4,'text-anchor':'end','font-size':11,fill:cs('--muted'),'font-family':'Fira Code, monospace'});ty.textContent=t;svg.appendChild(ty);
+  });
+  svg.appendChild(mk('line',{x1:X(lo),y1:Yv(lo),x2:X(hi),y2:Yv(hi),stroke:cs('--amber'),'stroke-width':2,'stroke-dasharray':'6 5',opacity:.85}));
+  const xl=mk('text',{x:pad.l+pw/2,y:H-10,'text-anchor':'middle','font-size':12.5,fill:cs('--ink'),'font-family':'Fira Code, monospace'});xl.textContent='True score';svg.appendChild(xl);
+  const ylb=mk('text',{x:15,y:pad.t+ph/2,'text-anchor':'middle','font-size':12.5,fill:cs('--ink'),'font-family':'Fira Code, monospace',transform:`rotate(-90 15 ${pad.t+ph/2})`});ylb.textContent='Predicted score';svg.appendChild(ylb);
+  const col=split==='random'?cs('--blue'):cs('--red');
+  o.true.forEach((tv,i)=>{
+    const pv=o.pred[i];
+    const c=mk('circle',{cx:X(tv),cy:Yv(pv),r:REDUCE?4.5:0,fill:col,opacity:.62,style:'cursor:pointer'});
+    c.addEventListener('mousemove',e=>showTip(`true ${tv.toFixed(2)} · pred ${pv.toFixed(2)}`,e.clientX,e.clientY));
+    c.addEventListener('mouseleave',hideTip);
+    svg.appendChild(c);
+    if(!REDUCE){const t0=performance.now()+i*4;
+      requestAnimationFrame(function s(now){let p=Math.min(1,(now-t0)/300);if(p<0)p=0;c.setAttribute('r',4.5*p);if(p<1)requestAnimationFrame(s);});}
+  });
+  $('#scatr2').textContent=`This run's R² = ${o.R2.toFixed(3)} (${split} split).`;
+}
+document.querySelectorAll('#scatoggle button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#scatoggle button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); curSplit=b.dataset.split; drawScatter(curSplit);
+}));
+
+/* one-shot animate on first view, driven by revealScan */
+let barsAnimated=false, scAnimated=false;
+$('#replay').addEventListener('click',()=>drawBars(true));
+function maybeAnimateCharts(vh){
+  if(!barsAnimated){const b=$('#bars').getBoundingClientRect(); if(b.top<vh*0.8&&b.bottom>0){barsAnimated=true;drawBars(true);}}
+  if(!scAnimated){const s=$('#scatter').getBoundingClientRect(); if(s.top<vh*0.8&&s.bottom>0){scAnimated=true;drawScatter(curSplit);}}
+}
+function redraw(){ try{ drawBars(false); drawScatter(curSplit); }catch(e){} }
+
+/* guaranteed initial render */
+drawBars(false);
+drawScatter(curSplit);
+revealScan();
+requestAnimationFrame(revealScan);
+</script>
+</body>
+</html>

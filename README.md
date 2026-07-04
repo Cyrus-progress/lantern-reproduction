@@ -16,6 +16,17 @@ or `--source answerkey` (trains on their pickles instead of ours).
 a Murcko-scaffold generalization probe shows the result is in-distribution only. See
 [FINDINGS.md](FINDINGS.md).
 
+## Explaining it
+
+Two plain-language companions to the code:
+
+- **[`website/index.html`](website/index.html)** — a self-contained interactive explainer
+  with a High School / Undergrad / PhD depth toggle, an interactive predicted-vs-true
+  scatter, and a random-vs-scaffold results chart. Open it directly in any browser (no
+  build or server needed).
+- **[WALKTHROUGH.md](WALKTHROUGH.md)** — a step-by-step, tenth-grade-level narrative of the
+  entire project, plus a glossary.
+
 ## Layout
 
 ```
