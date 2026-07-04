@@ -20,10 +20,12 @@ a Murcko-scaffold generalization probe shows the result is in-distribution only.
 
 Two plain-language companions to the code:
 
-- **[`website/index.html`](website/index.html)** — a self-contained interactive explainer
-  with a High School / Undergrad / PhD depth toggle, an interactive predicted-vs-true
-  scatter, and a random-vs-scaffold results chart. Open it directly in any browser (no
-  build or server needed).
+- **Interactive explainer** — **live at
+  [cyrus-progress.github.io/lantern-reproduction](https://cyrus-progress.github.io/lantern-reproduction/)**
+  (source: [`website/index.html`](website/index.html)). A self-contained page with a
+  High School / Undergrad / PhD depth toggle, an interactive predicted-vs-true scatter,
+  a random-vs-scaffold results chart, and dark mode. Also opens directly in any browser
+  (no build or server needed).
 - **[WALKTHROUGH.md](WALKTHROUGH.md)** — a step-by-step, tenth-grade-level narrative of the
   entire project, plus a glossary.
 
