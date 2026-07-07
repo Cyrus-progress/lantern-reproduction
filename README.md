@@ -24,8 +24,8 @@ Two plain-language companions to the code:
   [cyrus-progress.github.io/lantern-reproduction](https://cyrus-progress.github.io/lantern-reproduction/)**
   (source: [`website/index.html`](website/index.html)). A self-contained page with a
   High School / Undergrad / PhD depth toggle, an interactive predicted-vs-true scatter,
-  a random-vs-scaffold results chart, and dark mode. Also opens directly in any browser
-  (no build or server needed).
+  a random-vs-scaffold results chart, dark mode, and a live **"Try it"** box that predicts
+  a pasted SMILES (backed by the Space below). Also opens directly in any browser.
 - **[WALKTHROUGH.md](WALKTHROUGH.md)** — a step-by-step, tenth-grade-level narrative of the
   entire project, plus a glossary.
 
@@ -99,12 +99,21 @@ Adds **LightGBM** and a **GROVER-representation** model (MLP on the 4800-dim pre
 embeddings), the previously-unused **`scaffold_balanced`** split, and a **no-leak** re-run that
 quantifies how much the authors' MinMax leak inflates scores.
 
-### Interactive demo
+### Interactive demo — live
 
-`serve/` is a tiny FastAPI backend (deployable free on a Hugging Face Space) that predicts a
-pasted SMILES using the exact training featurization. `python export_model.py` freezes the model
-into `serve/artifacts/`; the website's "Try it" section calls the Space. See
-[serve/README.md](serve/README.md).
+Paste a SMILES → predicted transfection efficiency, a reliability badge (distance to the nearest
+known lipid), the nearest lipids, and a 2D structure:
+
+- **Try it:** the "Try it" box at
+  [cyrus-progress.github.io/lantern-reproduction](https://cyrus-progress.github.io/lantern-reproduction/#tryit)
+- **Backend Space:** [huggingface.co/spaces/CyrusTKSHo/lantern-predictor](https://huggingface.co/spaces/CyrusTKSHo/lantern-predictor)
+  (`https://CyrusTKSHo-lantern-predictor.hf.space`)
+
+`serve/` is a tiny FastAPI backend (free Hugging Face **Docker** Space) that predicts using the
+exact training featurization (`featurize.py`) with numpy-only inference — no torch/sklearn on the
+server. `python export_model.py` freezes the model into `serve/artifacts/`; the site's `API_BASE`
+points at the Space. The free tier sleeps when idle (~20s cold start, handled in the UI). To
+redeploy your own, see [serve/README.md](serve/README.md).
 
 ## Key results
 
