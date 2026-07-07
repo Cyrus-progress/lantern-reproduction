@@ -163,6 +163,36 @@ def load_cached(out_dir: str = FEATURE_DIR):
     return circ, exp, target
 
 
+def featurize_combined(smiles_list) -> np.ndarray:
+    """SMILES -> [N, 2258] = [circular(2048) | expert(210)].
+
+    This is the feature vector the models train on and the demo backend serves;
+    it is computable from *any* valid SMILES (unlike GROVER, below).
+    """
+    circ, exp = featurize_smiles(smiles_list)
+    return np.hstack([circ, exp])
+
+
+def load_grover(smiles_list=None) -> np.ndarray:
+    """Load 4800-dim GROVER pretrained-GNN embeddings from the answer-key pickle.
+
+    Keyed by SMILES and only available for the dataset molecules -- GROVER is a
+    pretrained model, so these embeddings cannot be computed from an arbitrary
+    new SMILES. Used only for the offline feature-representation ablation.
+    """
+    import pickle
+    path = os.path.join(ANSWER_KEY_DIR, "grover.pkl")
+    if not os.path.isfile(path):
+        raise FileNotFoundError(
+            f"grover.pkl not found at {path}. Clone the upstream LANTERN repo "
+            "(git clone https://github.com/AsalMehradfar/LANTERN) to get GROVER features.")
+    with open(path, "rb") as f:
+        d = pickle.load(f)
+    if smiles_list is None:
+        smiles_list, _ = load_smiles_and_target()
+    return np.array([np.asarray(d[s], float) for s in smiles_list])
+
+
 # --------------------------------------------------------------------------- #
 # Validation against the repo's answer-key pickles
 # --------------------------------------------------------------------------- #

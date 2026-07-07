@@ -32,22 +32,28 @@ Two plain-language companions to the code:
 ## Layout
 
 ```
-featurize.py          SMILES -> (count Morgan 2048, expert RDKit 210); --validate, --build
-models.py             kNN / RF / SVR baselines + 7-layer PyTorch MLP, one fit/predict API
-train.py              assemble features, MinMax preprocessing, split, train, score vs paper
+featurize.py          SMILES -> (count Morgan 2048, expert RDKit 210, GROVER 4800); --build/--validate
+models.py             kNN / RF / SVR / LightGBM baselines + 7-layer PyTorch MLP, one fit/predict API
+train.py              assemble features, MinMax preprocessing (leak / no-leak), split, train, score
 evaluate.py           R2 / RMSE / MAE / Pearson r, and the predicted-vs-true scatter plot
 plot_robustness.py    Phase-2 grouped bar chart (R2 mean+/-std, random vs scaffold)
+run_matrix.py         full model x split x leak/no-leak matrix -> results/stronger_models_matrix.csv
+plot_matrix.py        figures for the stronger-models matrix + the data-leak effect
+run_all.py            one-command reproduction (features -> models -> robustness figure)
+export_model.py       freeze the MLP for the demo backend -> serve/artifacts/ (numpy)
+serve/                demo backend (FastAPI on a Hugging Face Space); see serve/README.md
+tests/                pytest suite (fast, deterministic; run in CI)
 data/                 vendored: AGILE.csv + train/val/test split files (from upstream)
 features/             cached feature matrices (git-ignored; built by featurize.py)
 results/              metrics CSVs + figures
-LANTERN/              (optional, git-ignored) upstream clone; only for --validate / answerkey
+LANTERN/              (optional, git-ignored) upstream clone; only for --validate / answerkey / GROVER
 ```
 
 ## Setup
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install numpy==1.26.4 pandas scikit-learn scipy matplotlib rdkit torch
+pip install -r requirements.txt          # pinned; or: make install
 ```
 
 DeepChem (used by the authors for the count Morgan fingerprint) is **not** required —
@@ -76,22 +82,49 @@ python train.py --model all --split scaffold --seeds 10
 python plot_robustness.py
 ```
 
-Useful flags: `--model {knn,rf,svr,mlp,all}`, `--split {random,scaffold,scaffold_balanced}`,
-`--features circular,expert` (ablate blocks), `--source {computed,answerkey}` (train on our
-features or the authors' pickles), `--seeds N` (multi-seed mean±std).
+Useful flags: `--model {knn,rf,svr,lgbm,mlp,all}`, `--split {random,scaffold,scaffold_balanced}`,
+`--features circular,expert,grover` (ablate blocks), `--no-leak` (fit the scaler on train rows
+only — the honest protocol), `--source {computed,answerkey}`, `--seeds N` (mean±std).
+
+### Extended experiments
+
+```bash
+python run_all.py           # one-command core reproduction (features -> models -> figure)
+python run_matrix.py        # full matrix: every model x 3 splits x leak/no-leak, 10 seeds
+python plot_matrix.py       # figures for the matrix + the leak-inflation effect
+pytest -q                   # fast test suite (also runs in CI)
+```
+
+Adds **LightGBM** and a **GROVER-representation** model (MLP on the 4800-dim pretrained-GNN
+embeddings), the previously-unused **`scaffold_balanced`** split, and a **no-leak** re-run that
+quantifies how much the authors' MinMax leak inflates scores.
+
+### Interactive demo
+
+`serve/` is a tiny FastAPI backend (deployable free on a Hugging Face Space) that predicts a
+pasted SMILES using the exact training featurization. `python export_model.py` freezes the model
+into `serve/artifacts/`; the website's "Try it" section calls the Space. See
+[serve/README.md](serve/README.md).
 
 ## Key results
 
-| Model | Random R² | Scaffold R² |
-|---|---|---|
-| kNN | 0.6178 | **0.5946** (best OOD) |
-| RF  | 0.7256 | 0.4453 |
-| SVR | 0.7310 | 0.3162 |
-| **MLP** | **0.8123** (best ID) | 0.4868 |
-| AGILE (cited) | 0.2655 | 0.0057 |
+Test R² (10-seed means, leaked scaling to match the paper):
 
-Random-split values are 10-seed means. The best in-distribution model (MLP) is *not* the
-best on novel scaffolds (kNN) — full discussion in [FINDINGS.md](FINDINGS.md).
+| Model | Random | Murcko scaffold | Scaffold-balanced |
+|---|---|---|---|
+| kNN | 0.618 | **0.595** | −0.193 |
+| RF | 0.726 | 0.445 | 0.273 |
+| SVR | 0.731 | 0.316 | 0.137 |
+| LightGBM | 0.760 | 0.450 | **0.454** |
+| **MLP** | **0.812** | 0.487 | 0.176 |
+| AGILE (cited) | 0.266 | 0.006 | — |
+
+The best model **depends on the split**: MLP in-distribution (random), kNN on Murcko scaffold,
+LightGBM on scaffold-balanced — where kNN collapses below zero. So kNN's OOD robustness is *not*
+universal; LightGBM is the most consistent across both novel-scaffold splits. GROVER
+(pretrained-GNN) embeddings underperform and even dilute the classical features. The MinMax leak
+inflates the MLP by ~0.008 R² (≤0.003 for others) — negligible and ranking-preserving. Full
+discussion in [REPORT.md](REPORT.md) and [FINDINGS.md](FINDINGS.md).
 
 ## Notes / deviations
 

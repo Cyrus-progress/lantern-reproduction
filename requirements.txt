@@ -1,0 +1,19 @@
+# Pinned environment for the LANTERN reproduction (Python 3.12).
+# Install:  python -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
+#
+# DeepChem is intentionally NOT required: the count-Morgan fingerprint is
+# reproduced with RDKit's Morgan generator and validated against the answer key
+# (see featurize.py --validate). torch-geometric is only needed for the optional
+# from-scratch GNN and is left out of the core pins.
+
+numpy==1.26.4
+pandas==3.0.3
+scikit-learn==1.9.0
+scipy==1.17.1
+matplotlib==3.11.0
+rdkit==2026.3.3
+torch==2.12.1
+lightgbm==4.6.0
+
+# testing
+pytest>=8.0

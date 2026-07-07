@@ -25,3 +25,10 @@ src/
 
 # Claude Code local settings
 .claude/
+
+# Generated demo-Space bundle (rebuild with: python export_model.py)
+serve/artifacts/
+serve/featurize.py
+
+# Background run logs
+results/*.log

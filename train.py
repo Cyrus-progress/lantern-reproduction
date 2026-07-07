@@ -22,10 +22,14 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import warnings
 
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
+
+# LightGBM + sklearn emit a benign feature-names warning when fed numpy arrays.
+warnings.filterwarnings("ignore", message="X does not have valid feature names")
 
 import featurize
 from evaluate import format_metrics, regression_metrics, scatter_plot
@@ -80,15 +84,26 @@ def load_feature_matrix(feature_combo, source="computed"):
         raise ValueError(f"unknown source {source!r}")
 
     blocks = {"circular": circ, "expert": exp}
+    if "grover" in feature_combo:
+        smiles, _ = featurize.load_smiles_and_target()
+        blocks["grover"] = featurize.load_grover(smiles)
     X = np.hstack([blocks[name] for name in feature_combo])
     return X, y
 
 
-def preprocess(X, y):
-    """MinMax(-1,1) on [X | y] over all rows (matches pipeline/preprocess.py)."""
+def preprocess(X, y, train_idx=None, leak=True):
+    """MinMax(-1,1) scaling of [X | y].
+
+    leak=True (default): fit the scaler over ALL rows, including the test rows and
+        the target column -- this reproduces the paper's pipeline/preprocess.py and
+        is kept so our numbers stay comparable to theirs.
+    leak=False: fit the scaler on TRAIN rows only (the honest protocol). Requires
+        train_idx. Everything is then transformed with that train-fit scaler.
+    """
     y = np.asarray(y).reshape(-1, 1)
     data = np.hstack([X, y])
-    scaler = MinMaxScaler(feature_range=(-1, 1)).fit(data)
+    fit_on = data if (leak or train_idx is None) else data[train_idx]
+    scaler = MinMaxScaler(feature_range=(-1, 1)).fit(fit_on)
     scaled = scaler.transform(data)
     d = X.shape[1]
     return scaled[:, :d], scaled[:, d:], scaler
@@ -110,10 +125,10 @@ def load_split(split):
 # One experiment
 # --------------------------------------------------------------------------- #
 def run_experiment(model_name, split, seed=None, feature_combo=("circular", "expert"),
-                   source="computed", verbose=False, return_preds=False):
+                   source="computed", verbose=False, return_preds=False, leak=True):
     X, y = load_feature_matrix(feature_combo, source=source)
-    Xs, ys, scaler = preprocess(X, y)
     tr, va, te = load_split(split)
+    Xs, ys, scaler = preprocess(X, y, train_idx=tr, leak=leak)
 
     model = make_model(model_name, input_dim=Xs.shape[1], seed=seed, verbose=verbose)
     model.fit(Xs[tr], ys[tr], Xs[va], ys[va])
@@ -153,6 +168,8 @@ def main():
     ap.add_argument("--source", default="computed",
                     choices=["computed", "answerkey"],
                     help="use our featurize.py output or the repo's pickles")
+    ap.add_argument("--no-leak", action="store_true",
+                    help="fit the scaler on train rows only (honest, uninflated)")
     ap.add_argument("--no-plot", action="store_true")
     ap.add_argument("--tag", default="", help="suffix for output filenames")
     args = ap.parse_args()
@@ -160,9 +177,11 @@ def main():
     os.makedirs(RESULTS_DIR, exist_ok=True)
     combo = tuple(s.strip() for s in args.features.split(","))
     models = MODEL_NAMES if args.model == "all" else [args.model.lower()]
-    tag = (args.tag or f"{args.split}_{'-'.join(combo)}")
+    leak = not args.no_leak
+    tag = (args.tag or f"{args.split}_{'-'.join(combo)}") + ("" if leak else "_noleak")
 
-    print(f"\nSplit={args.split}  features={combo}  source={args.source}")
+    print(f"\nSplit={args.split}  features={combo}  source={args.source}  "
+          f"leak={leak}")
     print("=" * 78)
 
     records = []
@@ -170,7 +189,7 @@ def main():
         print(f"Multi-seed run: {args.seeds} seeds\n")
         for m in models:
             agg, _ = run_multi_seed(m, args.split, args.seeds, feature_combo=combo,
-                                    source=args.source)
+                                    source=args.source, leak=leak)
             print(f"{m.upper():4s}  R2={agg['R2'][0]:.4f}+/-{agg['R2'][1]:.4f}  "
                   f"RMSE={agg['RMSE'][0]:.4f}+/-{agg['RMSE'][1]:.4f}  "
                   f"MAE={agg['MAE'][0]:.4f}+/-{agg['MAE'][1]:.4f}  "
@@ -189,7 +208,7 @@ def main():
         make_plot = (not args.no_plot) and (m == "mlp" or len(models) == 1)
         metrics, y_true, y_pred = run_experiment(
             m, args.split, seed=args.seed, feature_combo=combo,
-            source=args.source, return_preds=True)
+            source=args.source, return_preds=True, leak=leak)
         line = f"{m.upper():4s}  {format_metrics(metrics)}"
         if m in paper:
             line += f"   | paper R2={paper[m]['R2']:.4f}"

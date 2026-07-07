@@ -58,6 +58,16 @@ def make_svr():
     return SklearnRegressor(SVR(kernel="rbf"))
 
 
+def make_lgbm(seed=None):
+    """LightGBM gradient boosting -- a strong modern baseline."""
+    from lightgbm import LGBMRegressor
+    return SklearnRegressor(
+        LGBMRegressor(n_estimators=400, learning_rate=0.05, num_leaves=31,
+                      subsample=0.8, colsample_bytree=0.8, min_child_samples=10,
+                      random_state=seed, n_jobs=-1, verbosity=-1)
+    )
+
+
 # --------------------------------------------------------------------------- #
 # MLP
 # --------------------------------------------------------------------------- #
@@ -167,9 +177,11 @@ def make_model(name: str, input_dim: int, seed=None, **kw):
         return make_rf(seed=seed)
     if name == "svr":
         return make_svr()
+    if name in ("lgbm", "lightgbm", "gbm"):
+        return make_lgbm(seed=seed)
     if name == "mlp":
         return MLPRegressor(input_dim=input_dim, seed=seed, **kw)
     raise ValueError(f"unknown model {name!r}")
 
 
-MODEL_NAMES = ["knn", "rf", "svr", "mlp"]
+MODEL_NAMES = ["knn", "rf", "svr", "lgbm", "mlp"]

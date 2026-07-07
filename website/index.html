@@ -185,6 +185,21 @@
     cursor:pointer;font-size:12.5px;font-weight:600;font-family:var(--mono);display:inline-flex;align-items:center;gap:6px;transition:border-color .2s,color .2s}
   .btn .ic{width:14px;height:14px}
   .btn:hover{border-color:var(--amber);color:var(--amber-ink)}
+  #smiles-in:focus{outline:none;border-color:var(--blue)}
+  .ex-btn{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:20px;
+    padding:4px 11px;cursor:pointer;font-family:var(--mono);font-size:11.5px;transition:border-color .2s,color .2s}
+  .ex-btn:hover{border-color:var(--blue);color:var(--ink)}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px;font-weight:600;
+    padding:4px 11px;border-radius:20px;letter-spacing:.02em}
+  .badge.high{background:color-mix(in srgb,var(--green) 15%,var(--surface));color:var(--green);border:1px solid color-mix(in srgb,var(--green) 35%,transparent)}
+  .badge.moderate{background:color-mix(in srgb,var(--amber) 15%,var(--surface));color:var(--amber-ink);border:1px solid color-mix(in srgb,var(--amber) 35%,transparent)}
+  .badge.low{background:color-mix(in srgb,var(--red) 13%,var(--surface));color:var(--red);border:1px solid color-mix(in srgb,var(--red) 35%,transparent)}
+  .spin{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--blue);border-radius:50%;
+    display:inline-block;animation:spin .7s linear infinite;vertical-align:-3px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .nb-row{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:12px;
+    padding:6px 0;border-bottom:1px solid var(--line);color:var(--muted)}
+  .nb-row code{background:none;padding:0;overflow-wrap:anywhere}
   .legend{display:flex;gap:18px;font-size:13px;color:var(--muted);align-items:center;flex-wrap:wrap;font-family:var(--mono)}
   .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:7px;vertical-align:-1px}
   svg.chart{width:100%;height:auto;display:block;overflow:visible}
@@ -272,6 +287,7 @@
     <a href="#reproduce">reproduce</a>
     <a href="#stress">stress_test</a>
     <a href="#findings">findings</a>
+    <a href="#tryit">try_it</a>
     <a href="#glossary">glossary</a>
   </nav>
   <button class="iconbtn" id="themebtn" title="Toggle dark mode" aria-label="Toggle dark mode"><svg class="ic"><use href="#i-moon"/></svg></button>
@@ -519,6 +535,31 @@
     <div class="card statcard"><div class="big green">kNN</div><div class="lbl">best model on novel shapes</div></div>
     <div class="card statcard"><div class="big">5×</div><div class="lbl">MLP variance blow-up under shift</div></div>
   </div>
+  <div class="note"><svg class="ic"><use href="#i-flask"/></svg><div>A follow-up study (adding <b>LightGBM</b> and the pretrained-GNN <b>GROVER</b> features, across a third split) sharpened this: the best out-of-distribution model is actually <b>split-dependent</b> — kNN wins on the Murcko scaffold split above, but <em>collapses below zero</em> on a balanced-scaffold split where <b>LightGBM</b> wins. So kNN's robustness isn't universal; a boosted tree is the steadier bet on novel scaffolds. Details in <code>REPORT.md</code>.</div></div>
+</div></section>
+
+<!-- TRY IT -->
+<section id="tryit" style="--acc:var(--green)"><div class="wrap reveal">
+  <div class="eyebrow"><span class="bar"></span>Interactive · Try it</div>
+  <h2>Predict your own lipid</h2>
+  <p class="lede">Paste a lipid SMILES and the reproduced model predicts its transfection efficiency — with an honest reliability badge based on how far your molecule sits from anything it was trained on.</p>
+  <div class="chartcard">
+    <label for="smiles-in" style="font-family:var(--mono);font-size:12.5px;color:var(--muted);display:block;margin-bottom:7px">SMILES string</label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <input id="smiles-in" type="text" spellcheck="false" autocomplete="off"
+        placeholder="paste a SMILES, or pick an example below"
+        style="flex:1;min-width:240px;font-family:var(--mono);font-size:13.5px;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--ink)">
+      <button class="btn" id="predict-btn" style="padding:11px 18px;font-size:13.5px"><svg class="ic"><use href="#i-flask"/></svg> Predict</button>
+    </div>
+    <div style="margin-top:11px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:var(--mono);font-size:12px;color:var(--muted)">
+      <span>try:</span>
+      <button class="ex-btn" data-smiles="CCCCCCCC/C=C\CCCCCCCCNC(=O)C(CCCCCOC(=O)CCCCCCC/C=C\CCCCCCCC)NCCCN(C)CCCN">a known lipid</button>
+      <button class="ex-btn" data-smiles="CC(=O)Oc1ccccc1C(=O)O">aspirin (off-domain)</button>
+      <button class="ex-btn" data-smiles="CN1C=NC2=C1C(=O)N(C(=O)N2C)C">caffeine (off-domain)</button>
+    </div>
+    <div id="predict-out" style="margin-top:16px"></div>
+  </div>
+  <div class="note"><svg class="ic"><use href="#i-scale"/></svg><div>Predictions use the MLP on <b>circular+expert</b> features — the exact training featurization, run on a tiny backend. The <b>reliability badge</b> reflects distance to the nearest known lipid, a nod to our core finding: these models are unreliable on genuinely novel scaffolds.</div></div>
 </div></section>
 
 <!-- GLOSSARY -->
@@ -726,6 +767,43 @@ function maybeAnimateCharts(vh){
   if(!scAnimated){const s=$('#scatter').getBoundingClientRect(); if(s.top<vh*0.8&&s.bottom>0){scAnimated=true;drawScatter(curSplit);}}
 }
 function redraw(){ try{ drawBars(false); drawScatter(curSplit); }catch(e){} }
+
+/* ---------- Try-it prediction demo ---------- */
+const API_BASE = "https://REPLACE-ME.hf.space";   // <- set to your deployed HF Space URL
+const outEl = $('#predict-out'), inEl = $('#smiles-in');
+function badgeHtml(rel){
+  const label={high:'in-domain · reliable',moderate:'borderline',low:'out-of-domain · unreliable'}[rel]||rel;
+  const mark={high:'●',moderate:'◐',low:'○'}[rel]||'○';
+  return `<span class="badge ${rel}">${mark} ${label}</span>`;
+}
+async function runPredict(){
+  const smiles=(inEl.value||'').trim();
+  if(!smiles){inEl.focus();return;}
+  if(API_BASE.includes('REPLACE-ME')){
+    outEl.innerHTML=`<div class="note" style="margin:0"><svg class="ic"><use href="#i-bulb"/></svg><div>The prediction backend isn't wired up in this copy yet. Deploy the free Hugging&nbsp;Face Space (see <code>serve/README.md</code> in the repo) and set <code>API_BASE</code> at the top of this page's script.</div></div>`;
+    return;
+  }
+  outEl.innerHTML=`<div style="font-family:var(--mono);font-size:13px;color:var(--muted)"><span class="spin"></span> Predicting… <span style="opacity:.7">(first call can take ~20s while the backend wakes)</span></div>`;
+  try{
+    const r=await fetch(API_BASE.replace(/\/$/,'')+'/predict',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({smiles})});
+    const o=await r.json();
+    if(o.error){outEl.innerHTML=`<div class="badge low">○ ${o.error}</div>`;return;}
+    const nbs=o.neighbors.map(n=>`<div class="nb-row"><code>${n.smiles.length>44?n.smiles.slice(0,44)+'…':n.smiles}</code><span>score ${n.score} · d ${n.distance}</span></div>`).join('');
+    outEl.innerHTML=`
+      <div style="display:flex;gap:22px;flex-wrap:wrap;align-items:center">
+        <div><div style="font-family:var(--mono);font-size:12px;color:var(--muted)">predicted transfection</div>
+          <div style="font-family:var(--mono);font-size:38px;font-weight:700;color:var(--primary);line-height:1.05">${o.score}</div></div>
+        <div style="align-self:center">${badgeHtml(o.reliability)}<div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px">nearest known lipid: d = ${o.nearest_distance} &nbsp;(domain ≤ ${o.domain_threshold})</div></div>
+        <div style="margin-left:auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:4px;line-height:0">${o.svg}</div>
+      </div>
+      <div style="margin-top:14px"><div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:4px">nearest known lipids</div>${nbs}</div>`;
+  }catch(e){
+    outEl.innerHTML=`<div class="badge low">○ couldn't reach the prediction backend — ${String(e).slice(0,64)}</div>`;
+  }
+}
+$('#predict-btn').addEventListener('click',runPredict);
+inEl.addEventListener('keydown',e=>{if(e.key==='Enter')runPredict();});
+document.querySelectorAll('.ex-btn').forEach(b=>b.addEventListener('click',()=>{inEl.value=b.dataset.smiles;runPredict();}));
 
 /* guaranteed initial render */
 drawBars(false);
