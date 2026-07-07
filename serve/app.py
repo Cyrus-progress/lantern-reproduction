@@ -27,7 +27,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import featurize  # noqa: E402
 from rdkit import Chem  # noqa: E402
-from rdkit.Chem.Draw import rdMolDraw2D  # noqa: E402
+try:                                            # structure rendering is optional
+    from rdkit.Chem.Draw import rdMolDraw2D  # noqa: E402
+except Exception:                               # missing system rendering libs
+    rdMolDraw2D = None
 
 ART = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
 
@@ -76,10 +79,15 @@ def predict(smiles: str) -> dict:
     neighbors = [{"smiles": SMILES[i], "score": round(float(Y_TRAIN[i]), 3),
                   "distance": round(float(dists[i]), 3)} for i in order]
 
-    d = rdMolDraw2D.MolDraw2DSVG(320, 220)
-    d.DrawMolecule(mol)
-    d.FinishDrawing()
-    svg = d.GetDrawingText()
+    svg = ""
+    if rdMolDraw2D is not None:
+        try:
+            d = rdMolDraw2D.MolDraw2DSVG(320, 220)
+            d.DrawMolecule(mol)
+            d.FinishDrawing()
+            svg = d.GetDrawingText()
+        except Exception:
+            svg = ""
 
     return {"score": round(score, 3), "reliability": reliability,
             "nearest_distance": round(nearest, 3),

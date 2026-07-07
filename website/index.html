@@ -769,7 +769,7 @@ function maybeAnimateCharts(vh){
 function redraw(){ try{ drawBars(false); drawScatter(curSplit); }catch(e){} }
 
 /* ---------- Try-it prediction demo ---------- */
-const API_BASE = "https://REPLACE-ME.hf.space";   // <- set to your deployed HF Space URL
+const API_BASE = "https://CyrusTKSHo-lantern-predictor.hf.space";   // deployed HF Space
 const outEl = $('#predict-out'), inEl = $('#smiles-in');
 function badgeHtml(rel){
   const label={high:'in-domain · reliable',moderate:'borderline',low:'out-of-domain · unreliable'}[rel]||rel;

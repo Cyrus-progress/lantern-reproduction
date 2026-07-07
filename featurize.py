@@ -36,7 +36,6 @@ import argparse
 import os
 
 import numpy as np
-import pandas as pd
 from rdkit import Chem, RDLogger
 from rdkit.Chem import Descriptors
 from rdkit.Chem import rdFingerprintGenerator as rfg
@@ -137,6 +136,7 @@ def featurize_smiles(smiles_list) -> tuple[np.ndarray, np.ndarray]:
 
 
 def load_smiles_and_target(csv_path: str = DATA_CSV):
+    import pandas as pd  # lazy: keeps the demo backend pandas-free
     df = pd.read_csv(csv_path)
     return df["SMILES"].tolist(), df["Target"].to_numpy(dtype=np.float64)
 
